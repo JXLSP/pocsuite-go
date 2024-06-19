@@ -22,7 +22,7 @@ type ShellCodeBase struct {
     BadChars    string
 }
 
-func NewShellCodeBase() *ShellCodeBase {
+func NewShellCodeBase(osTarget, osTargetArch, connectBackIP string, connectBackPort int, badChars []byte, prefix, suffix string) *ShellCodeBase {
     return &ShellCodeBase{}
 }
 
