@@ -2,7 +2,6 @@ package shellcode
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 )
 
@@ -25,7 +24,15 @@ type ShellCodeBase struct {
 	TemplateVars map[string]string
 }
 
+// NewShellCodeBase 创建一个新的ShellCodeBase实例
 func NewShellCodeBase(osTarget, osTargetArch, connectBackIP string, connectBackPort int, badChars []byte, prefix, suffix string) *ShellCodeBase {
+	if connectBackIP == "" {
+		connectBackIP = "localhost"
+	}
+	if connectBackPort == 0 {
+		connectBackPort = 5555
+	}
+
 	return &ShellCodeBase{
 		Target:       osTarget,
 		Arch:         osTargetArch,
@@ -34,10 +41,12 @@ func NewShellCodeBase(osTarget, osTargetArch, connectBackIP string, connectBackP
 		BadChars:     string(badChars),
 		Prefix:       prefix,
 		Suffix:       suffix,
+		Name:         "",
 		TemplateVars: make(map[string]string),
 	}
 }
 
+// GenShellCode 生成shellcode
 func (s *ShellCodeBase) GenShellCode(code string) (string, error) {
 	if err := s.Validate(); err != nil {
 		return "", err
@@ -49,7 +58,7 @@ func (s *ShellCodeBase) GenShellCode(code string) (string, error) {
 
 	// 添加默认模板变量
 	s.TemplateVars["LOCALHOST"] = s.IP
-	s.TemplateVars["LOCALPORT"] = strconv.Itoa(s.Port)
+	s.TemplateVars["LOCALPORT"] = fmt.Sprintf("%d", s.Port)
 
 	// 替换所有模板变量
 	for key, value := range s.TemplateVars {
@@ -59,6 +68,11 @@ func (s *ShellCodeBase) GenShellCode(code string) (string, error) {
 	return code, nil
 }
 
+// FormatShellCode 是GenShellCode的别名
+func (s *ShellCodeBase) FormatShellCode(code string) (string, error) {
+	return s.GenShellCode(code)
+}
+
 func (s *ShellCodeBase) MakeInline(payloads string) string {
 	payloads = strings.ReplaceAll(payloads, "\t", " ")
 	payloads = strings.ReplaceAll(payloads, "\r", " ")
@@ -66,10 +80,13 @@ func (s *ShellCodeBase) MakeInline(payloads string) string {
 	return payloads
 }
 
+// GetShellCode 获取shellcode
 func (s *ShellCodeBase) GetShellCode(inline bool) (string, error) {
 	if err := s.Validate(); err != nil {
 		return "", err
 	}
+
+	// 基类中不实现具体逻辑，由子类实现
 	return "", fmt.Errorf("GetShellCode not implemented in base class")
 }
 
