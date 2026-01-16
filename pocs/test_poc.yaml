@@ -1,0 +1,24 @@
+name: Test POC
+severity: low
+author: pocsuite-go
+description: A simple test POC for pocsuite-go framework
+reference:
+  - https://example.com
+
+requests:
+  - method: GET
+    path: /
+    headers:
+      User-Agent: pocsuite-go-test
+    matchers:
+      - type: status
+        status:
+          - 200
+          - 301
+          - 302
+      - type: word
+        part: body
+        words:
+          - html
+          - HTML
+        condition: or

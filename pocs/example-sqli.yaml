@@ -1,0 +1,32 @@
+id: example-sql-injection
+info:
+  name: Example SQL Injection Detection
+  author: knownsec
+  severity: high
+  description: |
+    This is an example POC that demonstrates SQL injection detection.
+    It tests for common SQL injection patterns in the response.
+  reference:
+    - https://owasp.org/www-community/attacks/SQL_Injection
+  tags:
+    - sqli
+    - injection
+    - example
+
+requests:
+  - method: GET
+    path: "/login?id=1' OR '1'='1"
+    headers:
+      User-Agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    matchers:
+      - type: word
+        part: body
+        words:
+          - "error in your SQL syntax"
+          - "Warning: mysql_fetch_array()"
+          - "ORA-01756: quoted string not properly terminated"
+        condition: or
+      - type: status
+        status:
+          - 500
+          - 200
